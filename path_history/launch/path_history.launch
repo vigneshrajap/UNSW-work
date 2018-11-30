@@ -1,0 +1,9 @@
+
+<launch>
+
+  <node pkg="path_history" type="path_history_node" name="path_history" output="screen">
+    <param name="path_history_filepath" value="$(arg path_history_filepath)"/>
+  </node>
+
+</launch>
+

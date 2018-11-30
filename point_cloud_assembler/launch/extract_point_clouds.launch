@@ -1,0 +1,17 @@
+
+<launch>
+
+  <node pkg="point_cloud_assembler" type="extract_point_clouds_node" name="extract_point_clouds" output="screen">
+    <param name="pcd_base" value="$(arg pcd_base)"/>
+    <param name="duration" value="$(arg duration)"/>
+  </node>
+
+  <node pkg="laser_assembler" type="laser_scan_assembler" name="front_laser_scan_assembler" output="screen">
+    <remap from="scan" to="/front_laser/scan_range"/>
+    <param name="max_scans" value="200"/>
+    <param name="fixed_frame" value="/odom"/>
+    <param name="ignore_laser_skew" value="false"/>
+  </node>
+
+</launch>
+
