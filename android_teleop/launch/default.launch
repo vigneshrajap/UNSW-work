@@ -1,0 +1,14 @@
+
+<launch>
+
+  <node pkg="android_teleop" type="android_teleop_node" name="android_teleop" output="screen">
+    <rosparam file="$(find android_teleop)/config/default_params.yaml"/>
+  </node>
+
+  <node pkg="vineyard_localisation" type="ekf_accelerometer_node" name="ekf_accelerometer" output="screen">
+    <param name="imu_topic" value="/android/imu"/>
+    <param name="robot_base_frame" value="/android"/>
+  </node>
+
+</launch>
+

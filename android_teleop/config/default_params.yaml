@@ -1,0 +1,6 @@
+
+max_linear_vel: 1.0
+max_angular_vel: 1.0
+
+cmd_vel_topic: /android_teleop/cmd_vel
+

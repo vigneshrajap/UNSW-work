@@ -1,0 +1,9 @@
+
+<launch>
+
+  <node pkg="row_endpoint_detection" type="row_endpoint_detection_node" name="row_endpoint_detection" output="screen">
+    <param name="robot_base_frame" value="/base_footprint"/>
+  </node>
+
+</launch>
+
