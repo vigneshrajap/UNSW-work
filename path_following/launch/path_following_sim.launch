@@ -1,0 +1,11 @@
+
+<launch>
+
+  <node pkg="path_following" type="path_following_node" name="path_following" output="screen">
+    <rosparam file="$(find path_following)/config/path_following_sim_params.yaml"/>
+    <rosparam file="$(find path_following)/config/sim_path.yaml"/>
+    <rosparam file="$(find path_following)/config/sim_order.yaml"/>
+  </node>
+
+</launch>
+

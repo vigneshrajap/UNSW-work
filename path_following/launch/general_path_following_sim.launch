@@ -1,0 +1,9 @@
+
+<launch>
+
+  <node pkg="path_following" type="general_path_following_node" name="general_path_following" output="screen">
+    <rosparam file="$(find path_following)/config/general_path_following_sim_params.yaml"/>
+  </node>
+
+</launch>
+

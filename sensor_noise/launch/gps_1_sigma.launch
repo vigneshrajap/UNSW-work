@@ -1,0 +1,11 @@
+
+<launch>
+
+  <node pkg="sensor_noise" type="odometry_noise_node" name="gps_noise" output="screen">
+    <param name="position_sigma" value="1.0"/>
+    <param name="sensor_odom_topic" value="/gps"/>
+    <param name="noisy_odom_topic" value="/noisy_gps"/>
+  </node>
+
+</launch>
+

@@ -1,0 +1,122 @@
+#! /usr/bin/env python
+
+import rospy
+
+from geometry_msgs.msg import PoseArray
+
+import dynamic_reconfigure.client
+
+from functools import partial
+
+import numpy as np
+
+from path_following.cfg import general_path_following_paramsConfig as ConfigType
+
+def linesCallback(client, lines):
+
+  # Array alternates between starts and end of detected lines.
+  # Find the points on the lines and the direction that the line is going in.
+  line_points = [];
+  line_directions = [];
+  for line_idx in xrange(0, len(lines.poses), 2):
+
+    line_start = lines.poses[line_idx].position
+    line_end = lines.poses[line_idx + 1].position
+
+    # Parametrise the line with point and direction.
+    line_point = np.array([line_start.x, line_start.y, 0.0])
+    line_direction = np.array([line_end.x - line_start.x, line_end.y - line_start.y, 0.0])
+
+    # Make sure all of the lines are pointing in the same direction.
+    if line_idx > 0 and np.dot(line_directions[0], line_direction) < 0:
+      line_point = line_point + line_direction
+      line_direction *= -1
+
+    line_points.append(line_point)
+    line_directions.append(line_direction)
+
+  # Find the signed distance from each point to the origin.
+  origin = np.array([0.0, 0.0, 0.0])
+  dists = []
+  line_starts = []
+  line_ends = []
+  for line_point, line_direction in zip(line_points, line_directions):
+
+    # Find which side of the origin the line is on.
+    delta_origin = line_point - origin
+
+    line_direction_unit = line_direction/np.linalg.norm(line_direction)
+
+    # Find the distance from the origin to the line.
+    dist = np.linalg.norm(delta_origin - (np.dot(delta_origin, line_direction_unit)*line_direction_unit))
+
+    cross_product = np.cross(line_direction, delta_origin)
+
+    if (cross_product[2] < 0):
+      dist *= -1
+
+    dists.append(dist)
+
+    line_starts.append(line_point)
+    line_ends.append(line_point + line_direction)
+
+  # Order the lines based on their distances from the origin.
+  line_zip = sorted(zip(dists, line_starts, line_ends))
+
+  line_starts = [line_start for (dist, line_start, line_end) in line_zip]
+  line_ends   = [line_end   for (dist, line_start, line_end) in line_zip]
+
+  # Pack the row entry points into a dict to be sent to the dynamic reconfigure server of the path follower.
+  path_nodes = []
+
+  # Add nodes before the first row, so that the robot can travel on the outside of the row.
+  # Unit vector in the direction of the first row.
+  first_row_line_direction_unit = line_directions[0]/np.linalg.norm(line_directions[0])
+  # Rotate 90 degrees counter-clockwise and assume 3 metres spacing between rows.
+  first_row_delta = np.array([first_row_line_direction_unit[1], -first_row_line_direction_unit[0], 0.0])
+  first_row_start = line_starts[0] + 1.5*first_row_delta
+  first_row_end   = line_ends[0]   + 1.5*first_row_delta
+
+  path_nodes.append({'x': first_row_start[0], 'y': first_row_start[1]})
+  path_nodes.append({'x': first_row_end[0],   'y': first_row_end[1]})
+
+  for line_idx in xrange(0, len(line_starts) - 1):
+
+    row_start = (line_starts[line_idx] + line_starts[line_idx + 1])/2
+    row_end   = (line_ends[line_idx]   + line_ends[line_idx + 1])/2
+
+    path_nodes.append({'x': row_start[0], 'y': row_start[1]})
+    path_nodes.append({'x': row_end[0],   'y': row_end[1]})
+ 
+  # Add nodes after the last row, so that the robot can travel on the outside of the row.
+  # Unit vector in the direction of the last row.
+  last_row_line_direction_unit = line_directions[len(line_directions) - 1]/np.linalg.norm(line_directions[len(line_directions) - 1])
+  # Rotate 90 degrees clockwise and assume 3 metres spacing between rows.
+  last_row_delta = np.array([-last_row_line_direction_unit[1], last_row_line_direction_unit[0], 0.0])
+  last_row_start = line_starts[len(line_directions) - 1] + 1.5*last_row_delta
+  last_row_end   = line_ends[len(line_directions) - 1]   + 1.5*last_row_delta
+
+  path_nodes.append({'x': last_row_start[0], 'y': last_row_start[1]})
+  path_nodes.append({'x': last_row_end[0],   'y': last_row_end[1]})
+
+  updated_config = {'path_nodes': path_nodes}
+  client.update_configuration(updated_config)
+
+if __name__ == '__main__':
+
+  rospy.init_node('rows_to_path_node')
+
+  # Parse params.
+  lines_topic = rospy.get_param('~lines_topic', '/state_lines')
+  path_topic = rospy.get_param('~path_topic', '/path')
+
+  # Initialise the dynamic reconfigure client.
+  client = dynamic_reconfigure.client.Client('general_path_following')
+
+  # Set up subscribers and publishers.
+
+  # Subscribe to the lines that have been detected.
+  lines_sub = rospy.Subscriber(lines_topic, PoseArray, partial(linesCallback, client))
+
+  rospy.spin()
+

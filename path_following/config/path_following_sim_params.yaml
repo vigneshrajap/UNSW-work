@@ -1,0 +1,6 @@
+
+cmd_vel_topic: /autonomous_navigation/cmd_vel
+
+path_source: param
+path_param: sim_path
+
