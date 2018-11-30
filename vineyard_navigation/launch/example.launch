@@ -1,0 +1,16 @@
+
+<launch>
+
+  <node pkg="objective_planner" type="objective_planner_node" name="objective_planner" output="screen">
+    <rosparam file="$(find vineyard_navigation)/config/example_params.yaml"/>
+    <rosparam file="$(find local_planner)/config/costmap_params.yaml" ns="local_costmap"/>
+    <rosparam file="$(find local_planner)/config/local_costmap_params.yaml"/>
+    <rosparam file="$(find local_planner)/config/costmap_params.yaml" ns="global_costmap"/>
+    <rosparam file="$(find local_planner)/config/global_costmap_params.yaml"/>
+  </node>
+
+  <!-- Identity map to odom tranform. -->
+  <node pkg="tf" type="static_transform_publisher" name="identity_map_to_odom_broadcaster" args="0 0 0 0 0 0 map odom 20" />
+
+</launch>
+

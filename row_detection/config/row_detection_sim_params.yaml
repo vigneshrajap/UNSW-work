@@ -1,0 +1,14 @@
+
+lines_topic: /lines
+markers_topic: /line_markers
+
+line_detection:
+  radius_min: -3.0
+  radius_max: 3.0
+  radius_samples: 10
+  angle_min: 1.57
+  angle_max: 1.57
+  angle_samples: 1
+  number_of_iterations: 30
+  distance_threshold: 0.75
+

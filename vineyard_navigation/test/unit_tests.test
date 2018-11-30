@@ -1,0 +1,7 @@
+
+<launch>
+
+  <test pkg="vineyard_navigation" type="vineyard_navigation_unit_tests_node" test-name="vineyard_navigation_unit_tests"/>
+
+</launch>
+

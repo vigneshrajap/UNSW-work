@@ -1,0 +1,17 @@
+
+<library path="lib/librow_following_cost_function">
+  <class name="vineyard_navigation/RowFollowingCostFunction" type="vineyard_navigation::RowFollowingCostFunction" base_class_type="objective_planner::TrajectoryCostFunction">
+    <description>
+      Follows a row in a vineyard.
+    </description>
+  </class>
+</library>
+
+<library path="lib/librow_waypoint_cost_function">
+  <class name="vineyard_navigation/RowWaypointCostFunction" type="vineyard_navigation::RowWaypointCostFunction" base_class_type="objective_planner::TrajectoryCostFunction">
+    <description>
+      Follows a row waypoints in a vineyard.
+    </description>
+  </class>
+</library>
+

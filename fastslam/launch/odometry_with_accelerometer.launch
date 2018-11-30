@@ -1,0 +1,9 @@
+
+<launch>
+
+  <node pkg="fastslam" type="odometry_with_accelerometer_node" name="odometry_with_accelerometer" output="screen"/>
+
+  <node pkg="fastslam" type="path_history_node" name="path_history" output="screen"/>
+
+</launch>
+

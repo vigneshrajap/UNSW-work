@@ -1,0 +1,29 @@
+
+cmd_vel_topic: /autonomous_navigation/cmd_vel
+
+linear_vel_min: 0.0
+linear_vel_max: 1.0
+linear_vel_samples: 3
+
+angular_vel_max: 2.0
+angular_vel_samples: 10
+
+linear_acc_max: 1.0
+angular_acc_max: 2.0
+
+sim_time: 3.0
+sim_dt: 0.1
+
+odom_topic: /odom
+imu_topic: /imu
+
+cost_functions:
+
+  - name: row_waypoints
+    type: vineyard_navigation/RowWaypointCostFunction
+    scale: 1.0
+    params:
+      row_waypoints_filename: sim_waypoints.txt
+      row_order_filename: sim_order.txt
+      use_gps_origin: false
+            

@@ -1,0 +1,8 @@
+
+robot_base_frame: /base_footprint
+
+odom_topic: /odom
+imu_topic: /imu
+
+initial_yaw: 0.0
+

@@ -1,0 +1,27 @@
+
+cmd_vel_topic: /autonomous_navigation/cmd_vel
+
+linear_vel_min: 0.0
+linear_vel_max: 1.0
+linear_vel_samples: 3
+
+angular_vel_max: 2.0
+angular_vel_samples: 10
+
+linear_acc_max: 1.0
+angular_acc_max: 2.0
+
+sim_time: 3.0
+sim_dt: 0.1
+
+odom_topic: /encoder
+imu_topic: /imu/data
+
+cost_functions:
+
+  - name: row_following
+    type: vineyard_navigation/RowFollowingCostFunction
+    scale: 1.0
+    params:
+      blank: blank
+            

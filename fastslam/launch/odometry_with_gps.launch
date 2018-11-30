@@ -1,0 +1,13 @@
+
+<launch>
+
+  <node pkg="fastslam" type="odometry_with_gps_node" name="odometry_with_gps" output="screen"/>
+
+  <node pkg="gps_common" type="utm_odometry_node" name="utm_odometry" output="screen">
+    <remap from="odom" to="gps"/>
+  </node>
+
+  <node pkg="fastslam" type="path_history_node" name="path_history" output="screen"/>
+
+</launch>
+

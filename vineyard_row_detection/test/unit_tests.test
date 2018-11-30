@@ -1,0 +1,7 @@
+
+<launch>
+
+  <test pkg="vineyard_row_detection" type="unit_tests_node" test-name="vineyard_row_detection_unit_tests"/>
+
+</launch>
+

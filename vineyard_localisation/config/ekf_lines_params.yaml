@@ -1,0 +1,11 @@
+
+robot_base_frame: /base_link
+
+odom_topic: /encoder
+imu_topic: /imu/data
+gps_topic: /ignore
+
+initial_yaw: 2.32
+
+init_from_gps: false
+

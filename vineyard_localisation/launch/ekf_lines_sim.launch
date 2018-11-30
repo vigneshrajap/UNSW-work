@@ -1,0 +1,16 @@
+
+<launch>
+
+  <node pkg="vineyard_localisation" type="ekf_lines_node" name="ekf_lines" output="screen">
+    <rosparam file="$(find vineyard_localisation)/config/ekf_gps_sim_params.yaml"/>
+    <param name="candidate_add_value" value="6"/>
+  </node>
+
+  <node pkg="gps_common" type="utm_odometry_node" name="utm_odometry" output="screen">
+    <remap from="odom" to="gps"/>
+  </node>
+
+  <node pkg="fastslam" type="path_history_node" name="path_history" output="screen"/>
+
+</launch>
+

@@ -1,0 +1,9 @@
+
+<launch>
+
+  <include file="$(find vineyard_localisation)/launch/ekf_lines_sim.launch"/>
+
+  <include file="$(find row_detection)/launch/row_detection_sim.launch"/>
+
+</launch>
+

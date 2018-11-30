@@ -1,0 +1,15 @@
+
+<launch>
+
+  <node pkg="row_detection" type="row_detection_node" name="row_detection" output="screen">
+    <rosparam file="$(find row_detection)/config/row_detection_ransac_sim_params.yaml"/>
+  </node>
+
+  <node pkg="laser_assembler" type="laser_scan_assembler" name="front_laser_scan_assembler" output="screen">
+    <remap from="scan" to="/front_laser/scan"/>
+    <param name="max_scans" value="200"/>
+    <param name="fixed_frame" value="/odom"/>
+  </node>
+
+</launch>
+

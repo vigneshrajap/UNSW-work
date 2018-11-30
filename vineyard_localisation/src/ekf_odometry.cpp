@@ -1,0 +1,220 @@
+
+#include <vineyard_localisation/ekf_odometry.h>
+
+namespace vineyard_localisation
+{
+
+EKFOdometry::EKFOdometry() : odometry_sequencer_(0.005, 0.005), linear_vel_(0.0), angular_vel_x_(0.0), angular_vel_y_(0.0), angular_vel_z_(0.0), init_orientation_from_imu_(false), initial_yaw_(0.0), update_rate_(0.005), delay_(0.15)
+{
+
+  ros::NodeHandle private_node_handle("~");
+  param_utils::ParamHelper param_helper(private_node_handle, ros::this_node::getName());
+ 
+  std::string odom_topic("/encoder");
+  std::string imu_topic("/imu/data"); 
+
+  param_helper.getParamWithInfo("odom_topic", odom_topic);
+  param_helper.getParamWithInfo("imu_topic", imu_topic);
+
+  odom_sub_.subscribe(node_handle_, odom_topic, 10);
+  imu_sub_.subscribe(node_handle_, imu_topic, 200);
+
+  param_helper.getParamWithInfo("init_orientation_from_imu", init_orientation_from_imu_);
+
+  if (!init_orientation_from_imu_)
+  {
+    param_helper.getParamWithInfo("initial_yaw", initial_yaw_);
+  }
+
+  param_helper.getParamWithInfo("update_rate", update_rate_);
+
+  param_helper.getParamWithInfo("delay", delay_);
+
+}
+
+void EKFOdometry::init()
+{
+
+  initOdometryCommon();
+
+  odometry_sequencer_.subscribe<0>(odom_sub_, boost::bind(&EKFOdometry::odomCallback, this, _1));
+  odometry_sequencer_.subscribe<1>(imu_sub_, boost::bind(&EKFOdometry::imuCallback, this, _1));
+
+  odometry_sequencer_.setUpdateRate(ros::Duration(update_rate_));
+  odometry_sequencer_.setDelay(ros::Duration(delay_));
+
+}
+
+void EKFOdometry::initOdometryCommon()
+{
+
+  state_ = Eigen::VectorXd::Zero(7);
+
+  Eigen::Quaterniond identity_quat = Eigen::Quaterniond::Identity();
+
+  state_(3) = identity_quat.w();
+  state_(4) = identity_quat.x();
+  state_(5) = identity_quat.y();
+  state_(6) = identity_quat.z();
+
+  if (initial_yaw_ != 0.0)
+  {
+    qw() = cos(initial_yaw_/2.0);
+    qx() = 0.0;
+    qy() = 0.0;
+    qz() = sin(initial_yaw_/2.0);
+  }
+
+  cov_ = Eigen::MatrixXd::Zero(7, 7);
+  cov_(0,0) = 0.0;
+  cov_(1,1) = 0.0;
+  cov_(2,2) = 0.0;
+  cov_(3,3) = 0.0;
+  cov_(4,4) = 0.0;
+  cov_(5,5) = 0.0;
+  cov_(6,6) = 0.0;
+
+}
+
+void EKFOdometry::spin()
+{
+
+  while (ros::ok())
+  {
+    broadcastTransform();
+    ros::spinOnce();
+    ros::Rate(200.0).sleep();
+  }
+
+}
+
+void EKFOdometry::odomCallback(const nav_msgs::Odometry::ConstPtr & odom)
+{
+
+  if (prev_time_ == ros::Time())
+  {
+    prev_time_ = odom->header.stamp;
+  }
+
+  linear_vel_ = odom->twist.twist.linear.x;
+
+  ros::Time current_time = odom->header.stamp;
+  double dt = (current_time - prev_time_).toSec();
+  prev_time_ = current_time;
+
+  Eigen::Vector4d motion;
+  motion << linear_vel_,
+            angular_vel_x_,
+            angular_vel_y_,
+            angular_vel_z_;
+
+  processModel(motion, dt);
+
+  latest_time_ = prev_time_;
+
+}
+
+void EKFOdometry::imuCallback(const sensor_msgs::Imu::ConstPtr & imu)
+{
+
+  if (prev_time_ == ros::Time())
+  {
+    prev_time_ = imu->header.stamp;
+  }
+
+  angular_vel_x_ = imu->angular_velocity.x;
+  angular_vel_y_ = imu->angular_velocity.y;
+  angular_vel_z_ = imu->angular_velocity.z;
+
+  ros::Time current_time = imu->header.stamp;
+  double dt = (current_time - prev_time_).toSec();
+  prev_time_ = current_time;
+
+  Eigen::Vector4d motion;
+  motion << linear_vel_,
+            angular_vel_x_,
+            angular_vel_y_,
+            angular_vel_z_;
+
+  processModel(motion, dt);
+
+  latest_time_ = prev_time_;
+
+}
+
+void EKFOdometry::processModel(const Eigen::Vector4d & motion, double dt)
+{
+
+  // Get rotational component of state as a quaternion.
+  Eigen::Quaterniond rot_state = quat();
+
+  // Get translational component of motion.
+  Eigen::Vector3d trans_motion_local = Eigen::Vector3d(motion(0)*dt, 0.0, 0.0);
+
+  // Rotate the translational component of motion.
+  Eigen::Vector3d trans_motion = rot_state*trans_motion_local;
+
+  // Update the translational component of state. 
+  state_.segment<3>(0) += trans_motion;
+
+  // Get rotation component of motion as a pure quaternion.
+  Eigen::Quaterniond rot_motion(0.0, motion(1)*dt, motion(2)*dt, motion(3)*dt);
+
+  // Rotate the rotataionl component of state.
+  Eigen::Quaterniond delta_rot_state = rot_state*rot_motion;
+
+  rot_state.w() += 0.5*delta_rot_state.w();
+  rot_state.x() += 0.5*delta_rot_state.x();
+  rot_state.y() += 0.5*delta_rot_state.y();
+  rot_state.z() += 0.5*delta_rot_state.z();
+
+  rot_state.normalize();
+
+  // Update the rotational component of state.
+  state_(3) = rot_state.w();
+  state_(4) = rot_state.x();
+  state_(5) = rot_state.y();
+  state_(6) = rot_state.z();
+  
+  double v  = motion(0);
+  double wx = motion(1);
+  double wy = motion(2);
+  double wz = motion(3);
+
+  Eigen::Matrix<double, 7, 7> process_jacobian_77 ;
+  process_jacobian_77 << 1.0, 0.0, 0.0,  2.0*v*qw()*dt, 2.0*v*qx()*dt, -2.0*v*qy()*dt, -2.0*v*qz()*dt,
+                         0.0, 1.0, 0.0,  2.0*v*qz()*dt, 2.0*v*qy()*dt,  2.0*v*qx()*dt,  2.0*v*qw()*dt,
+                         0.0, 0.0, 1.0, -2.0*v*qy()*dt, 2.0*v*qz()*dt, -2.0*v*qw()*dt,  2.0*v*qx()*dt,
+                         0.0, 0.0, 0.0,            1.0,    -0.5*wx*dt,     -0.5*wy*dt,     -0.5*wz*dt,
+                         0.0, 0.0, 0.0,      0.5*wx*dt,           1.0,      0.5*wz*dt,     -0.5*wy*dt,
+                         0.0, 0.0, 0.0,      0.5*wy*dt,    -0.5*wz*dt,            1.0,      0.5*wx*dt,
+                         0.0, 0.0, 0.0,      0.5*wz*dt,     0.5*wy*dt,     -0.5*wx*dt,            1.0;
+
+  Eigen::MatrixXd process_jacobian = Eigen::MatrixXd::Identity(size(), size());
+  process_jacobian.block<7,7>(0,0) = process_jacobian_77;
+
+  Eigen::Matrix<double, 7, 4> motion_jacobian_74;
+  motion_jacobian_74 << qw()*qw() + qx()*qx() - qy()*qy() - qz()*qz(),       0.0,       0.0,      0.0,
+                                         2.0*( qw()*qz() + qx()*qy()),       0.0,       0.0,      0.0,
+                                         2.0*(-qw()*qy() + qx()*qz()),       0.0,       0.0,      0.0,
+                                                                  0.0, -0.5*qx(), -0.5*qy(), -0.5*qz(),
+                                                                  0.0,  0.5*qw(), -0.5*qz(),  0.5*qy(),
+                                                                  0.0,  0.5*qz(),  0.5*qw(), -0.5*qx(),
+                                                                  0.0, -0.5*qy(),  0.5*qx(),  0.5*qw();
+
+  Eigen::MatrixXd motion_jacobian = Eigen::MatrixXd::Zero(size(), 4);
+  motion_jacobian.block<7,4>(0,0) = motion_jacobian_74;
+  motion_jacobian *= dt;
+
+  Eigen::Matrix4d motion_noise = Eigen::Matrix4d::Zero();
+  motion_noise(0,0) = 0.001;
+  motion_noise(1,1) = 0.001;
+  motion_noise(2,2) = 0.001;
+  motion_noise(3,3) = 0.001;
+
+  cov_ = process_jacobian*cov_*process_jacobian.transpose() + motion_jacobian*motion_noise*motion_jacobian.transpose();
+
+}
+
+} // namespace vineyard_localisation
+

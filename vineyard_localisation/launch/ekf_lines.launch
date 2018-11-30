@@ -1,0 +1,19 @@
+
+<launch>
+
+  <node pkg="vineyard_localisation" type="ekf_lines_node" name="ekf_lines" output="screen">
+    <rosparam file="$(find vineyard_localisation)/config/ekf_lines_params.yaml"/>
+  </node>
+
+  <!--
+  <node pkg="gps_common" type="utm_odometry_node" name="utm_odometry" output="screen">
+    <remap from="odom" to="gps"/>
+  </node>
+  -->
+
+  <node pkg="path_history" type="path_history_node" name="path_history" output="screen">
+    <param name="path_history_filepath" value="/home/sammarden/Workspace/lines.txt"/>
+  </node>
+
+</launch>
+

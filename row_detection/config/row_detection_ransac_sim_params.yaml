@@ -1,0 +1,8 @@
+
+lines_topic: /lines
+markers_topic: /line_markers
+
+line_detection:
+  method: ransac
+  number_of_lines: 2
+  distance_threshold: 0.5

@@ -1,0 +1,9 @@
+
+<launch>
+
+  <node pkg="fastslam" type="odometry_only_node" name="odometry_only" output="screen"/>
+
+  <node pkg="fastslam" type="path_history_node" name="path_history" output="screen"/>
+
+</launch>
+
